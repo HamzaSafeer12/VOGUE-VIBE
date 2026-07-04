@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirming Order | Vogue Vibe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
+
+    <div id="status-card" class="max-w-md w-full bg-white p-8 rounded-3xl shadow-2xl text-center border border-gray-100">
+        
+        <div id="loading-state">
+            <div class="animate-spin inline-block w-12 h-12 border-[4px] border-current border-t-transparent text-indigo-600 rounded-full mb-4"></div>
+            <h2 class="text-2xl font-bold text-gray-800">Verifying Payment...</h2>
+            <p class="text-gray-500 mt-2">Please don't close this window.</p>
+        </div>
+
+        <div id="success-state" class="hidden">
+            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-3xl font-black text-gray-900 mb-2">Order Confirmed!</h2>
+            <p class="text-gray-500 mb-8">Thank you! Your payment was successful and your order is being processed.</p>
+            <a href="/" class="block w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-indigo-600 transition-all shadow-lg">Back to Shopping</a>
+        </div>
+
+        <div id="error-state" class="hidden">
+            <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">Verification Failed</h2>
+            <p id="error-msg" class="text-gray-500 mt-2">Something went wrong. Please contact support.</p>
+            <a href="/cart" class="mt-6 inline-block text-indigo-600 font-semibold underline">Return to Cart</a>
+        </div>
+    </div>
+
+    <script>
+        // 1. URL se session_id nikalna
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+
+        const loading = document.getElementById('loading-state');
+        const success = document.getElementById('success-state');
+        const error = document.getElementById('error-state');
+
+        if (sessionId) {
+            // 2. Backend API ko call karna (VerifyPaymentView)
+            fetch(`/api/verify-payment/?session_id=${sessionId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Agar aapka view login mangta hai toh token bhejain
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token') 
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.add('hidden');
+                if (data.message) {
+                    success.classList.remove('hidden');
+                    // OPTIONAL: Local cart clear kar dein agar JS mein save hai
+                    localStorage.removeItem('cart'); 
+                } else {
+                    error.classList.remove('hidden');
+                    document.getElementById('error-msg').innerText = data.error || "Payment could not be verified.";
+                }
+            })
+            .catch(err => {
+                loading.classList.add('hidden');
+                error.classList.remove('hidden');
+                console.error("Error:", err);
+            });
+        } else {
+            loading.classList.add('hidden');
+            error.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Your Shopping Bag | Vogue Vibe</title>
+</head>
+<body class="bg-slate-50 font-sans">
+
+    <nav class="bg-white border-b border-slate-200 py-6">
+        <div class="max-w-5xl mx-auto px-6 flex justify-between items-center">
+            <a href="/" class="text-2xl font-black text-slate-900 tracking-tight">VOGUE <span class="text-indigo-600">VIBE.</span></a>
+            <a href="/" class="text-sm font-bold text-slate-600 hover:text-indigo-600">← Back to Shop</a>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-6 py-12">
+        <h1 class="text-3xl font-extrabold text-slate-900 mb-8">Shopping Bag</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div class="lg:col-span-2 space-y-8">
+                <div id="cart-items-container" class="space-y-6">
+                    <div class="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+                        <p class="text-slate-400">Loading your treasures...</p>
+                    </div>
+                </div>
+
+                <div id="shipping-form" class="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm hidden">
+                    <h2 class="text-xl font-bold text-slate-900 mb-6">Shipping Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="full_name" placeholder="Full Name" class="p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="phone" placeholder="Phone Number" class="p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="md:col-span-2">
+                            <textarea id="address" placeholder="Full Address" rows="3" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                        </div>
+                        <input type="text" id="city" placeholder="City" class="p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="zip_code" placeholder="Zip Code" class="p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-3xl border border-slate-100 p-8 sticky top-28 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-900 mb-6">Order Summary</h2>
+                    <div class="space-y-4 text-sm font-medium">
+                        <div class="flex justify-between text-slate-500">
+                            <span>Subtotal</span>
+                            <span id="subtotal-amount">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-500 border-b pb-4">
+                            <span>Shipping</span>
+                            <span class="text-green-600 font-bold">FREE</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-black text-slate-900 pt-2">
+                            <span>Total</span>
+                            <span id="total-amount">$0.00</span>
+                        </div>
+                    </div>
+                    <button id="checkout-btn" onclick="handleCheckout()" class="w-full mt-8 bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-slate-900 transition-all shadow-lg shadow-indigo-100 disabled:bg-slate-300">
+                        Checkout Now
+                    </button>
+                    <p id="error-message" class="text-red-500 text-xs mt-4 text-center hidden font-bold"></p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const BASE_URL = '/api';
+        const token = localStorage.getItem('access_token');
+
+        if (!token) {
+            window.location.href = '/login/';
+        }
+
+        // 1. Fetch and Display Cart Items
+        async function loadCart() {
+            try {
+                const response = await fetch(`${BASE_URL}/cart/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const items = await response.json();
+                
+                const container = document.getElementById('cart-items-container');
+                const form = document.getElementById('shipping-form');
+                let subtotal = 0;
+
+                if (items.length === 0) {
+                    container.innerHTML = `<div class="text-center py-20 bg-white rounded-3xl border border-slate-100">
+                        <p class="text-slate-500 font-medium">Your bag is empty!</p>
+                        <a href="/" class="text-indigo-600 font-bold mt-2 block underline">Go shopping</a>
+                    </div>`;
+                    form.classList.add('hidden');
+                    return;
+                }
+
+                form.classList.remove('hidden');
+                container.innerHTML = '';
+                items.forEach(item => {
+                    subtotal += parseFloat(item.total_price);
+                    container.innerHTML += `
+                        <div class="bg-white rounded-3xl border border-slate-100 p-6 flex gap-6 items-center group">
+                            <img src="${item.variant_details.image}" class="w-24 h-24 rounded-2xl object-cover">
+                            <div class="flex-1">
+                                <h3 class="font-bold text-slate-900">${item.variant_details.product_name}</h3>
+                                <p class="text-xs text-slate-400 font-bold mt-1 uppercase tracking-wider">Size: ${item.variant_details.size.name}</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <span class="font-black text-slate-900">$${item.total_price}</span>
+                                    <div class="flex items-center gap-4">
+                                        <span class="text-sm font-bold text-slate-400">Qty: ${item.quantity}</span>
+                                        <button onclick="removeItem(${item.id})" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-tighter transition-colors">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('subtotal-amount').innerText = `$${subtotal.toFixed(2)}`;
+                document.getElementById('total-amount').innerText = `$${subtotal.toFixed(2)}`;
+
+            } catch (error) {
+                console.error("Cart Loading Error:", error);
+            }
+        }
+
+        // 2. Checkout Function (The Bridge to Stripe)
+        async function handleCheckout() {
+            const btn = document.getElementById('checkout-btn');
+            const errMsg = document.getElementById('error-message');
+            
+            // Gather Data
+            const data = {
+                full_name: document.getElementById('full_name').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                city: document.getElementById('city').value,
+                zip_code: document.getElementById('zip_code').value
+            };
+
+            // Basic Validation
+            if (!data.full_name || !data.address || !data.city) {
+                errMsg.innerText = "Please fill in all shipping details!";
+                errMsg.classList.remove('hidden');
+                return;
+            }
+
+            // Start Loading
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+            errMsg.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${BASE_URL}/checkout/`, { // Apne View ka sahi URL yahan likhen
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.url) {
+                    // Redirect to Stripe
+                    window.location.href = result.url;
+                } else {
+                    throw new Error(result.error || "Checkout failed");
+                }
+            } catch (error) {
+                btn.innerText = "Checkout Now";
+                btn.disabled = false;
+                errMsg.innerText = error.message;
+                errMsg.classList.remove('hidden');
+            }
+        }
+
+        async function removeItem(itemId) {
+            if (!confirm("Remove this item?")) return;
+            try {
+                const response = await fetch(`${BASE_URL}/cart/?item_id=${itemId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) loadCart();
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        loadCart();
+    </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Chatbot</title>
+    <style>
+        #chat-window { height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+        .user-msg { color: blue; margin: 5px 0; }
+        .ai-msg { color: green; margin: 5px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h2>Gemini AI Assistant</h2>
+    
+    <div id="chat-window">
+        </div>
+
+    <input type="text" id="user-input" placeholder="Apna sawal likhain..." style="width: 70%;">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        async function sendMessage() {
+            const inputField = document.getElementById('user-input');
+            const chatWindow = document.getElementById('chat-window');
+            const question = inputField.value;
+
+            if (!question) return;
+
+            // 1. User ka sawal screen par add karein
+            chatWindow.innerHTML += `<div class="user-msg"><b>You:</b> ${question}</div>`;
+            inputField.value = ''; // Input saaf kar dein
+
+            // 2. Loading indicator
+            const loadingId = "loading-" + Date.now();
+            chatWindow.innerHTML += `<div class="ai-msg" id="${loadingId}"><b>AI:</b> Thinking...</div>`;
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            try {
+                // 3. API Call karein (Hamaray Django view ko)
+                const response = await fetch('', {  // Khali string matlab current URL par hi POST karein
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}' // Django security ke liye zaroori hai
+                    },
+                    body: JSON.stringify({ "question": question })
+                });
+
+                const data = await response.json();
+                
+                // 4. AI ka asli answer "Thinking..." ki jagah replace karein
+                document.getElementById(loadingId).innerHTML = `<b>AI:</b> ${data.answer}`;
+            } catch (error) {
+                document.getElementById(loadingId).innerHTML = `<b>AI:</b> Error ho gaya!`;
+            }
+
+            // Scroll niche kar dein
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+    </script>
+</body>
+</html>
