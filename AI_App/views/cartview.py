@@ -5,6 +5,7 @@ from ..models import CartItem
 from ..serializers import CartItemSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+#cart view api
 class CartView(APIView):
     # Sirf un users ko access do jo logged in hain
     authentication_classes = [JWTAuthentication]
