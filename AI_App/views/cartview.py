@@ -39,3 +39,5 @@ class CartView(APIView):
             return Response({"message": "Item removed from cart"}, status=status.HTTP_204_NO_CONTENT)
         except CartItem.DoesNotExist:
             return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        #code end
